@@ -1,67 +1,120 @@
 # Document Intelligence System
 
-An AI-powered full-stack web application for uploading business documents, extracting structured data with OCR + LLM workflows, and managing results through a searchable dashboard.
+AI-powered full-stack document processing platform built with React, FastAPI, PostgreSQL, and Docker.
 
-This repository was built in 3 delivery phases and is now ready for local development, Docker-based demos, and GitHub publication.
-
-## Part 1: Foundation and Core CRUD
-
-Included in this checkpoint:
-
-- Project scaffold for `frontend/` and `backend/`
-- Docker Compose for frontend, backend, and PostgreSQL
-- FastAPI app with async SQLAlchemy setup
-- JWT auth endpoints: register, login, current user
-- Document APIs: upload, list, detail, search, delete
-- Local storage support with optional S3 wiring
-- OCR and AI extraction service stubs with a working `/documents/{id}/extract` flow
-- React app shell with login, dashboard, upload, and detail pages
-
-## Part 2: Extraction Hardening
-
-Completed in this checkpoint:
-
-- Improved OCR preprocessing for PDFs and images
-- Background extraction execution via FastAPI background tasks
-- Extraction status timestamps and error tracking on documents
-- Richer structured extraction fields for invoices, resumes, and contracts
-- Frontend polling and status-aware document detail rendering
-
-## Part 3: Production Readiness
-
-Completed in this checkpoint:
-
-- Added backend integration tests for auth, document CRUD/search, and extraction workflow
-- Hardened backend startup with environment-aware secret validation
-- Replaced wildcard CORS with configurable origin allowlists
-- Improved Docker Compose readiness with health checks and dependency conditions
-- Reviewed the codebase for portability issues and switched ORM UUID columns to database-agnostic types
+This application lets users upload business documents such as invoices, resumes, and contracts, extract structured data using OCR and AI-assisted parsing, and manage results through a searchable dashboard.
 
 ## Features
 
 - JWT-based user registration and login
 - PDF and image upload with validation
-- OCR text extraction with Tesseract
-- AI-assisted structured extraction for invoices, resumes, and contracts
-- PostgreSQL-backed metadata and extracted data storage
-- Dashboard with search, filtering, status badges, and detail pages
+- OCR text extraction using Tesseract
+- AI-assisted structured field extraction
+- PostgreSQL-backed document and extraction storage
+- Searchable dashboard with status tracking
+- Background extraction workflow
 - Docker Compose setup for frontend, backend, and database
-- Backend integration tests for auth, documents, and extraction
+- Backend integration tests for auth, document flows, and extraction
+
+## Tech Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Frontend | React.js + Tailwind CSS | Login, upload, dashboard, detail pages |
+| Backend | FastAPI | Async REST API |
+| Database | PostgreSQL + SQLAlchemy | Users, documents, extracted data |
+| OCR | Tesseract OCR | Raw text extraction from files |
+| AI Extraction | OpenAI-ready structured parsing with fallback heuristics | Structured JSON generation |
+| File Storage | Local filesystem or AWS S3 | Uploaded document storage |
+| Authentication | JWT | Secure user sessions |
+| Containers | Docker + Docker Compose | Consistent local deployment |
+| Validation | Pydantic | Request and schema validation |
+
+## System Architecture
+
+```text
+User
+  -> React Frontend (3000)
+  -> FastAPI Backend (8000)
+  -> OCR + AI Extraction
+  -> PostgreSQL / Local Storage or S3
+```
+
+## Project Structure
+
+```text
+document-intelligence-system/
+|-- frontend/
+|   `-- src/
+|       |-- components/
+|       `-- pages/
+|-- backend/
+|   |-- app/
+|   |   |-- routes/
+|   |   |-- services/
+|   |   |-- models.py
+|   |   |-- schemas.py
+|   |   `-- main.py
+|   `-- tests/
+|-- docker-compose.yml
+|-- .env.example
+`-- README.md
+```
 
 ## Quick Start
 
-1. Copy `.env.example` to `.env`.
-2. Run `docker compose up --build`.
-3. Open the frontend at `http://localhost:3000`.
-4. Open the backend at `http://localhost:8000/docs`.
-5. Run backend tests with `python -m pytest backend/tests -q` after installing backend dependencies.
+1. Copy `.env.example` to `.env`
+2. Run `docker compose up --build`
+3. Open the frontend at `http://localhost:3000`
+4. Open the API docs at `http://localhost:8000/docs`
+5. Run backend tests with `python -m pytest backend/tests -q`
 
-## GitHub Safety
+## API Endpoints
 
-- Commit `.env.example`, never commit `.env`
-- Do not commit uploaded files, local test artifacts, or cache folders
-- Rotate any secret immediately if it was ever pasted into a tracked file
-- Review screenshots before publishing to avoid exposing personal email addresses or document contents
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/users/register` | Create a new user account |
+| POST | `/api/users/login` | Login and receive JWT token |
+| GET | `/api/users/me` | Get current logged-in user |
+| GET | `/api/documents` | List uploaded documents |
+| GET | `/api/documents/search?q=` | Search documents by keyword |
+| GET | `/api/documents/{id}` | Get one document with extracted data |
+| POST | `/api/documents/upload` | Upload a new PDF or image |
+| POST | `/api/documents/{id}/extract` | Trigger extraction |
+| DELETE | `/api/documents/{id}` | Delete a document |
+
+## Database Schema
+
+### Users
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| email | String | Unique user email |
+| hashed_password | String | Secure password hash |
+| created_at | DateTime | Account creation time |
+
+### Documents
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| user_id | UUID | Foreign key to users |
+| filename | String | Original file name |
+| file_url | String | Stored file path or URL |
+| document_type | String | invoice / resume / contract |
+| status | String | pending / processing / completed / failed |
+| uploaded_at | DateTime | Upload timestamp |
+
+### Extracted Data
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | UUID | Primary key |
+| document_id | UUID | Foreign key to documents |
+| raw_text | Text | Full OCR output |
+| structured_json | JSONB | Parsed structured fields |
+| confidence_score | Float | Value from 0.0 to 1.0 |
 
 ## Environment Variables
 
@@ -89,25 +142,38 @@ MAX_FILE_SIZE_MB=10
 VITE_API_BASE_URL=http://localhost:8000/api
 ```
 
-## API Endpoints
+## Delivery Phases
 
-- `POST /api/users/register`
-- `POST /api/users/login`
-- `GET /api/users/me`
-- `GET /api/documents`
-- `GET /api/documents/search?q=keyword`
-- `GET /api/documents/{id}`
-- `POST /api/documents/upload`
-- `POST /api/documents/{id}/extract`
-- `DELETE /api/documents/{id}`
+### Phase 1: Foundation and Core CRUD
 
-## Notes
+- Project scaffold with Docker Compose
+- FastAPI backend with async SQLAlchemy
+- JWT auth endpoints
+- Upload, list, search, detail, and delete APIs
+- React pages for login, dashboard, upload, and detail
 
-- API responses follow the shared `success/data/message/error` contract.
-- Extraction now runs in background tasks and updates document processing timestamps and error state.
-- Local file storage is the default development path. S3 support is scaffolded and can be used for persisted uploads.
-- In production, set a real `SECRET_KEY`, restrict `CORS_ORIGINS`, and consider replacing in-process background tasks with a dedicated worker queue.
+### Phase 2: Extraction Hardening
+
+- OCR preprocessing improvements
+- Background extraction flow
+- Better structured fields for invoices, resumes, and contracts
+- Frontend polling and status-aware extraction UI
+
+### Phase 3: Production Readiness
+
+- Backend integration tests
+- Environment-aware secret validation
+- Configurable CORS allowlist
+- Docker health checks
+- Portable UUID handling across environments
+
+## GitHub Safety
+
+- Commit `.env.example`, never commit `.env`
+- Keep uploaded files, cache folders, and test artifacts out of Git
+- Rotate any secret immediately if it was ever exposed
+- Review screenshots and sample documents before publishing
 
 ## Portfolio Summary
 
-Document Intelligence System is a full-stack AI document processing platform built with React, FastAPI, PostgreSQL, and Docker. It supports secure authentication, file upload, OCR-based text extraction, AI-powered field parsing, searchable document management, and a responsive dashboard experience suitable for demos, academic projects, and portfolio presentation.
+Document Intelligence System is a full-stack AI document processing platform that demonstrates secure authentication, file upload workflows, OCR-based extraction, AI-assisted structured parsing, document search, and dashboard visualization in a Dockerized architecture.
