@@ -7,12 +7,15 @@ This application lets users upload business documents such as invoices, resumes,
 ## Features
 
 - JWT-based user registration and login
-- PDF and image upload with validation
+- Secure HttpOnly cookies for JWT sessions
+- Multi-file drag-and-drop batch upload processing
 - OCR text extraction using Tesseract
 - AI-assisted structured field extraction
 - PostgreSQL-backed document and extraction storage
 - Searchable dashboard with status tracking
-- Background extraction workflow
+- Interactive dashboard analytics and data visualization (Recharts)
+- Background extraction workflow with real-time WebSocket updates
+- Export extracted structured data to CSV
 - Docker Compose setup for frontend, backend, and database
 - Backend integration tests for auth, document flows, and extraction
 
@@ -26,7 +29,9 @@ This application lets users upload business documents such as invoices, resumes,
 | OCR | Tesseract OCR | Raw text extraction from files |
 | AI Extraction | OpenAI-ready structured parsing with fallback heuristics | Structured JSON generation |
 | File Storage | Local filesystem or AWS S3 | Uploaded document storage |
-| Authentication | JWT | Secure user sessions |
+| Authentication | JWT via HttpOnly Cookies | Secure user sessions |
+| Real-time | WebSockets | Instant status updates |
+| Visualization | Recharts | Dashboard analytics and charts |
 | Containers | Docker + Docker Compose | Consistent local deployment |
 | Validation | Pydantic | Request and schema validation |
 
@@ -78,10 +83,12 @@ document-intelligence-system/
 | GET | `/api/users/me` | Get current logged-in user |
 | GET | `/api/documents` | List uploaded documents |
 | GET | `/api/documents/search?q=` | Search documents by keyword |
+| GET | `/api/documents/export` | Export extracted data to CSV |
 | GET | `/api/documents/{id}` | Get one document with extracted data |
-| POST | `/api/documents/upload` | Upload a new PDF or image |
+| POST | `/api/documents/upload` | Upload multiple PDFs or images |
 | POST | `/api/documents/{id}/extract` | Trigger extraction |
 | DELETE | `/api/documents/{id}` | Delete a document |
+| WS | `/api/ws` | Real-time extraction status updates |
 
 ## Database Schema
 
@@ -166,6 +173,15 @@ VITE_API_BASE_URL=http://localhost:8000/api
 - Configurable CORS allowlist
 - Docker health checks
 - Portable UUID handling across environments
+
+### Phase 4: Advanced Features & Polish
+
+- Premium UI styling with custom fonts and micro-interactions
+- Secure HttpOnly cookies for JWT authentication
+- Dashboard analytics with Recharts visualizations
+- Real-time UI updates via FastAPI WebSockets
+- Multi-file batch document uploads
+- Export extracted data to CSV
 
 ## GitHub Safety
 
