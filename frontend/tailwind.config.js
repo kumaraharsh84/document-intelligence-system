@@ -4,15 +4,19 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: "#101a28",
-        sand: "#f6efe4",
-        ember: "#e06b2d",
-        moss: "#4d7b63",
-        mist: "#d7e3ef"
+        brand: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          500: '#3b82f6',
+          600: '#2563eb',
+          900: '#1e3a8a',
+        },
+        ink: "#0f172a",
+        sand: "#f8fafc",
       },
       fontFamily: {
-        display: ["Georgia", "serif"],
-        body: ["Trebuchet MS", "sans-serif"]
+        display: ["Outfit", "sans-serif"],
+        body: ["Inter", "sans-serif"]
       }
     }
   },
