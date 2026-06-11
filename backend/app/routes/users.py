@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.post("/register")
-async def register_user(payload: UserCreate, db: AsyncSession = Depends(get_db)) -> dict:
+async def register_user(payload: UserCreate, response: Response, db: AsyncSession = Depends(get_db)) -> dict:
     """Register a new user and return an access token."""
     try:
         existing = await db.execute(select(User).where(User.email == payload.email))
@@ -23,6 +23,7 @@ async def register_user(payload: UserCreate, db: AsyncSession = Depends(get_db))
         await db.commit()
         await db.refresh(user)
         token = create_access_token(str(user.id))
+        response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, samesite="lax", max_age=86400)
         return api_response(
             True,
             {"access_token": token, "token_type": "bearer", "user": UserOut.model_validate(user).model_dump(mode="json")},
@@ -37,7 +38,7 @@ async def register_user(payload: UserCreate, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login")
-async def login_user(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> dict:
+async def login_user(payload: UserLogin, response: Response, db: AsyncSession = Depends(get_db)) -> dict:
     """Authenticate a user and return a new access token."""
     try:
         result = await db.execute(select(User).where(User.email == payload.email))
@@ -45,6 +46,7 @@ async def login_user(payload: UserLogin, db: AsyncSession = Depends(get_db)) -> 
         if not user or not verify_password(payload.password, user.hashed_password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
         token = create_access_token(str(user.id))
+        response.set_cookie(key="access_token", value=f"Bearer {token}", httponly=True, samesite="lax", max_age=86400)
         return api_response(
             True,
             {"access_token": token, "token_type": "bearer", "user": UserOut.model_validate(user).model_dump(mode="json")},

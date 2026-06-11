@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -13,7 +13,7 @@ from app.database import get_db
 from app.models import User
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 ALGORITHM = "HS256"
 
 
@@ -35,12 +35,23 @@ def create_access_token(subject: str) -> str:
 
 
 async def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Resolve the current user from the bearer token."""
+    """Resolve the current user from the bearer token or cookie."""
     try:
-        token = credentials.credentials
+        token = None
+        if credentials:
+            token = credentials.credentials
+        else:
+            cookie_val = request.cookies.get("access_token")
+            if cookie_val and cookie_val.startswith("Bearer "):
+                token = cookie_val.split(" ")[1]
+        
+        if not token:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+            
         payload = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
         user_id = payload.get("sub")
         if not user_id:
