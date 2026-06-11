@@ -11,6 +11,7 @@ from app.database import AsyncSessionLocal, get_db
 from app.models import Document, ExtractedData, User
 from app.schemas import ExtractRequest
 from app.services.ai_extraction import extract_structured_data
+from app.websocket import manager
 from app.services.storage_service import open_local_copy
 from app.services.parser_service import extract_text_from_file
 from app.utils.response import api_response
@@ -90,9 +91,19 @@ async def run_extraction_job(document_id: uuid.UUID, user_id: uuid.UUID, documen
             document.processing_completed_at = datetime.now(timezone.utc)
             db.add(document)
             await db.commit()
+            
+            await manager.broadcast_to_user(
+                str(user_id), 
+                {"type": "document_updated", "document_id": str(document_id), "status": "completed"}
+            )
         except Exception as exc:
             document.status = "failed"
             document.processing_error = str(exc)
             document.processing_completed_at = datetime.now(timezone.utc)
             db.add(document)
             await db.commit()
+            
+            await manager.broadcast_to_user(
+                str(user_id), 
+                {"type": "document_updated", "document_id": str(document_id), "status": "failed"}
+            )

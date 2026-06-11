@@ -9,6 +9,7 @@ from app.database import init_db
 from app.routes.documents import router as documents_router
 from app.routes.extract import router as extract_router
 from app.routes.users import router as users_router
+from app.routes.ws import router as ws_router
 from app.utils.response import api_response
 
 
@@ -50,3 +51,4 @@ async def health_check() -> dict:
 app.include_router(users_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(extract_router, prefix="/api")
+app.include_router(ws_router, prefix="/api")

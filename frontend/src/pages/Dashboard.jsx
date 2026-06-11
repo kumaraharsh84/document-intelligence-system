@@ -27,6 +27,46 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    let ws;
+    const connectWs = () => {
+      // Connect using the same host but ws:// or wss:// protocol
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.hostname;
+      // The API base URL is http://localhost:8000/api usually, so we replace http with ws
+      const wsUrl = import.meta.env.VITE_API_BASE_URL 
+        ? import.meta.env.VITE_API_BASE_URL.replace(/^http/, "ws") + "/ws"
+        : `ws://${host}:8000/api/ws`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "document_updated") {
+            loadDocuments();
+          }
+        } catch (e) {
+          // ignore parsing errors
+        }
+      };
+
+      ws.onclose = () => {
+        // optionally reconnect after delay
+        setTimeout(connectWs, 5000);
+      };
+    };
+
+    connectWs();
+
+    return () => {
+      if (ws) {
+        ws.onclose = null;
+        ws.close();
+      }
+    };
+  }, []); // Connect once on mount
+
+  useEffect(() => {
     loadDocuments();
   }, [filter]);
 
