@@ -6,9 +6,9 @@ export default function UploadBox({ onFileSelect, busy }) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleFiles = (files) => {
-    // Pass the first selected file back to the parent page.
-    if (files?.[0]) {
-      onFileSelect(files[0]);
+    // Pass the selected files back to the parent page.
+    if (files && files.length > 0) {
+      onFileSelect(Array.from(files));
     }
   };
 
@@ -31,11 +31,12 @@ export default function UploadBox({ onFileSelect, busy }) {
       <input
         ref={inputRef}
         type="file"
-        accept=".pdf,.png,.jpg,.jpeg,.webp"
+        accept=".doc,.docx,.xls,.xlsx,.pdf,.png,.jpg,.jpeg,.webp"
+        multiple
         className="hidden"
         onChange={(event) => handleFiles(event.target.files)}
       />
-      <h2 className="font-display text-3xl text-ink">Drop a document here</h2>
+      <h2 className="font-display text-3xl text-ink">Drop documents here</h2>
       <p className="mt-3 text-ink/65">PDF, PNG, JPG, JPEG, WEBP up to 10MB</p>
       <button
         type="button"

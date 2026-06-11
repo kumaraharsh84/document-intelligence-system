@@ -103,51 +103,52 @@ async def get_document(
 
 
 @router.post("/upload")
-async def upload_document(
-    file: UploadFile = File(...),
+async def upload_documents(
+    files: list[UploadFile] = File(...),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
-    """Validate and store a user-uploaded document."""
-    file_url: str | None = None
-    try:
-        extension = os.path.splitext(file.filename or "")[1].lower()
-        if extension not in ALLOWED_EXTENSIONS:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
-        if file.size and file.size > settings.max_file_size_mb * 1024 * 1024:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds size limit")
-        file_url = await save_upload(file)
-        document = Document(
-            user_id=current_user.id,
-            filename=file.filename or "uploaded-file",
-            file_url=file_url,
-            status="pending",
-            processing_error=None,
-        )
-        db.add(document)
-        await db.commit()
-        await db.refresh(document)
-        return api_response(
-            True,
-            serialize_document(document, include_extracted_data=False),
-            "Document uploaded successfully",
-            None,
-        )
-    except HTTPException:
-        if file_url:
-            try:
-                await delete_upload(file_url)
-            except Exception:
-                logger.exception("Failed to clean up uploaded file after HTTP error")
-        raise
-    except Exception as exc:
-        await db.rollback()
-        if file_url:
-            try:
-                await delete_upload(file_url)
-            except Exception:
-                logger.exception("Failed to clean up uploaded file after database failure")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    """Validate and store multiple user-uploaded documents."""
+    saved_documents = []
+    
+    for file in files:
+        file_url: str | None = None
+        try:
+            extension = os.path.splitext(file.filename or "")[1].lower()
+            if extension not in ALLOWED_EXTENSIONS:
+                continue # Skip unsupported
+            if file.size and file.size > settings.max_file_size_mb * 1024 * 1024:
+                continue # Skip too large
+            file_url = await save_upload(file)
+            document = Document(
+                user_id=current_user.id,
+                filename=file.filename or "uploaded-file",
+                file_url=file_url,
+                status="pending",
+                processing_error=None,
+            )
+            db.add(document)
+            await db.commit()
+            await db.refresh(document)
+            saved_documents.append(serialize_document(document, include_extracted_data=False))
+        except Exception as exc:
+            await db.rollback()
+            if file_url:
+                try:
+                    await delete_upload(file_url)
+                except Exception:
+                    logger.exception("Failed to clean up uploaded file after database failure")
+            # We continue processing the other files even if one fails
+            
+    if not saved_documents:
+         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No valid files were uploaded")
+         
+    return api_response(
+        True,
+        saved_documents,
+        f"{len(saved_documents)} documents uploaded successfully",
+        None,
+    )
 
 
 @router.delete("/{document_id}")
