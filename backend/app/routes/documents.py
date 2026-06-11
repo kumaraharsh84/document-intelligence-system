@@ -114,10 +114,7 @@ async def upload_document(
         extension = os.path.splitext(file.filename or "")[1].lower()
         if extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported file type")
-        contents = await file.read()
-        size_bytes = len(contents)
-        await file.seek(0)
-        if size_bytes > settings.max_file_size_mb * 1024 * 1024:
+        if file.size and file.size > settings.max_file_size_mb * 1024 * 1024:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds size limit")
         file_url = await save_upload(file)
         document = Document(
