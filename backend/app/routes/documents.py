@@ -1,8 +1,11 @@
 import os
 import uuid
 import logging
+import io
+import csv
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -81,6 +84,58 @@ async def search_documents(
         documents = result.scalars().unique().all()
         data = [serialize_document(item, include_extracted_data=False) for item in documents]
         return api_response(True, data, "Search completed successfully", None)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/export")
+async def export_documents(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Export all documents and structured data to a CSV file."""
+    try:
+        query = (
+            select(Document)
+            .options(selectinload(Document.extracted_data))
+            .where(Document.user_id == current_user.id)
+            .order_by(Document.uploaded_at.desc())
+        )
+        result = await db.execute(query)
+        documents = result.scalars().all()
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["ID", "Filename", "Status", "Type", "Uploaded At", "Extracted Name", "Extracted Date", "Extracted Amount", "Extracted Vendor", "Confidence"])
+        
+        for doc in documents:
+            row = [
+                str(doc.id),
+                doc.filename,
+                doc.status,
+                doc.document_type or "",
+                doc.uploaded_at.isoformat(),
+            ]
+            if doc.extracted_data and isinstance(doc.extracted_data.structured_json, dict):
+                fields = doc.extracted_data.structured_json.get("extracted_fields", {})
+                row.extend([
+                    fields.get("name") or "",
+                    fields.get("date") or "",
+                    fields.get("amount") or "",
+                    fields.get("vendor") or "",
+                    doc.extracted_data.confidence_score or 0.0
+                ])
+            else:
+                row.extend(["", "", "", "", ""])
+                
+            writer.writerow(row)
+            
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": "attachment; filename=documents_export.csv"}
+        )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

@@ -86,6 +86,21 @@ export default function Dashboard() {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await api.get("/documents/export", { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", "documents_export.csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (exportError) {
+      setError("Failed to export data.");
+    }
+  };
+
   const stats = useMemo(() => {
     const statusCounts = { pending: 0, processing: 0, completed: 0, failed: 0 };
     const typeCounts = {};
@@ -111,16 +126,24 @@ export default function Dashboard() {
           <p className="text-sm uppercase tracking-[0.2em] text-ember">Dashboard</p>
           <h1 className="font-display text-4xl text-ink">Your processed documents</h1>
         </div>
-        <select
-          value={filter}
-          onChange={(event) => setFilter(event.target.value)}
-          className="rounded-2xl border border-ink/10 bg-white px-4 py-3 focus:outline-none"
-        >
-          <option value="">All document types</option>
-          <option value="invoice">Invoice</option>
-          <option value="resume">Resume</option>
-          <option value="contract">Contract</option>
-        </select>
+        <div className="flex gap-4">
+          <button
+            onClick={handleExport}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 font-medium text-ink hover:bg-slate-50 transition"
+          >
+            Export to CSV
+          </button>
+          <select
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            className="rounded-2xl border border-ink/10 bg-white px-4 py-3 focus:outline-none"
+          >
+            <option value="">All document types</option>
+            <option value="invoice">Invoice</option>
+            <option value="resume">Resume</option>
+            <option value="contract">Contract</option>
+          </select>
+        </div>
       </div>
 
       {documents.length > 0 && !loading && !error && (
