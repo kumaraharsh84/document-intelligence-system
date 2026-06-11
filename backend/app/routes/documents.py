@@ -18,7 +18,7 @@ from app.utils.serializers import serialize_document
 router = APIRouter(prefix="/documents", tags=["documents"])
 logger = logging.getLogger(__name__)
 
-ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
+ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp", ".doc", ".docx", ".xls", ".xlsx"}
 
 
 async def _get_owned_document(document_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> Document:

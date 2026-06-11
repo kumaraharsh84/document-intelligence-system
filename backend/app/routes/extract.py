@@ -12,7 +12,7 @@ from app.models import Document, ExtractedData, User
 from app.schemas import ExtractRequest
 from app.services.ai_extraction import extract_structured_data
 from app.services.storage_service import open_local_copy
-from app.services.ocr_service import extract_text_with_tesseract
+from app.services.parser_service import extract_text_from_file
 from app.utils.response import api_response
 from app.utils.serializers import serialize_document
 
@@ -71,7 +71,7 @@ async def run_extraction_job(document_id: uuid.UUID, user_id: uuid.UUID, documen
             return
         try:
             async with open_local_copy(document.file_url) as local_path:
-                raw_text = await extract_text_with_tesseract(local_path)
+                raw_text = await extract_text_from_file(local_path)
             structured = await extract_structured_data(raw_text, document_type_hint or document.document_type)
 
             if document.extracted_data:
